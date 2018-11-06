@@ -1,10 +1,22 @@
 #include "Commissioning.h"
 
+//extern char Humidity_H;
+//extern char Humidity_L;
+//extern char Temperature_H;
+//extern char Temperature_L;
+
+//unsigned char TEM[5] ={'T','e','m','p',':'};
+//unsigned char HUM[4] ={'H','u','m',':'};
+
+
+
+
 RTC_DATA_ATTR enum eDeviceState DeviceState;
 LoRaMacPrimitives_t LoRaMacPrimitives;
 LoRaMacCallback_t LoRaMacCallbacks;
 MibRequestConfirm_t mibReq;
-
+uint8_t isJioned=0;
+uint8_t isAckReceived=0;
 /*!
  * Defines the application data transmission duty cycle. 60s, value in [ms].
  */
@@ -13,8 +25,8 @@ uint8_t AppEui[] = LORAWAN_APPLICATION_EUI;
 uint8_t AppKey[] = LORAWAN_APPLICATION_KEY;
 
 #if( OVER_THE_AIR_ACTIVATION == 0 )
- uint8_t NwkSKey[] = LORAWAN_NWKSKEY;
- uint8_t AppSKey[] = LORAWAN_APPSKEY;
+RTC_DATA_ATTR uint8_t NwkSKey[] = LORAWAN_NWKSKEY;
+RTC_DATA_ATTR uint8_t AppSKey[] = LORAWAN_APPSKEY;
 
 /*!
  * Device address
@@ -51,22 +63,26 @@ bool NextTx = true;
     case 2:
         {
 #if defined( USE_BAND_433 ) || defined( USE_BAND_470 ) || defined( USE_BAND_470PREQUEL ) || defined( USE_BAND_780 ) || defined( USE_BAND_868 )
-            AppData[0] =   'A';
-            AppData[1] =   'B';
-            AppData[2] =   '3';
-            AppData[3] =   '4';
-            AppData[4] =   '.';
-            AppData[5] =   '3';
-            AppData[6] =   '3';
-            AppData[7] =   'C';
-            AppData[8] =   'D';
-            AppData[9] =   '0';
-            AppData[10] =  'E';
-            AppData[11] =  'F';
-            AppData[12] =  '6';
-            AppData[13] =  '5';
-            AppData[14] =  '%';
-            AppData[15] =  '4';
+
+////             	AppData[0] =   TEM[0];
+////              AppData[1] =   TEM[1];
+////              AppData[2] =   TEM[2];
+////              AppData[3] =   TEM[3];
+////              AppData[4]  =  TEM[4];
+////              AppData[5]  =  Temperature_H;
+////              AppData[6]  =  Temperature_L;
+////              AppData[7]  =   ' ';
+////              AppData[8]  =  HUM[0];
+////              AppData[9]  =  HUM[1];
+////              AppData[10] =  HUM[2];
+////              AppData[11] =  HUM[3];
+////              AppData[12] =  Humidity_H;
+////              AppData[13] =  Humidity_L;
+////              AppData[14] =  '%';
+////			      	AppData[15] =  '4';
+
+
+
 #elif defined( USE_BAND_915 ) || defined( USE_BAND_915_HYBRID )
             AppData[0] =   '1';
             AppData[1] =   '2';
@@ -121,7 +137,6 @@ bool NextTx = true;
 {
     McpsReq_t mcpsReq;
     LoRaMacTxInfo_t txInfo;
-
     if( LoRaMacQueryTxPossible( AppDataSize, &txInfo ) != LORAMAC_STATUS_OK )
     {
         // Send empty frame in order to flush MAC commands
@@ -150,7 +165,7 @@ bool NextTx = true;
             mcpsReq.Req.Confirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
         }
     }
-//    lora_printf("LoRaMacMcpsRequest( &mcpsReq ) \n");
+
     if( LoRaMacMcpsRequest( &mcpsReq ) == LORAMAC_STATUS_OK )
     {
         return false;
@@ -171,7 +186,7 @@ void OnTxNextPacketTimerEvent( void )
     TimerStop( &TxNextPacketTimer );
 
     mibReq.Type = MIB_NETWORK_JOINED;
-    status = LoRaMacMibGetRequestConfirm( &mibReq );//闂佽法鍠愰弸濠氬箯缁屾挤atus=LORAMAC_STATUS_OK   mibReq.Param.IsNetworkJoined = IsLoRaMacNetworkJoined
+    status = LoRaMacMibGetRequestConfirm( &mibReq );
 
     if( status == LORAMAC_STATUS_OK )
     {
@@ -272,8 +287,10 @@ void OnTxNextPacketTimerEvent( void )
 
     if( mcpsIndication->AckReceived == true )
     {
+//    	lora_printf("UpLinkCounter:%d  DownLinkCounter:%d \n",UpLinkCounter,DownLinkCounter);
     	lora_printf("+SEND:ACK RECEIVED\n");
     	lora_printf("+SEND:DONE\n\n");
+    	isAckReceived++;
     	delay(100);
     }
 
@@ -459,6 +476,7 @@ void OnTxNextPacketTimerEvent( void )
  * \param   [IN] mlmeConfirm - Pointer to the confirm structure,
  *               containing confirm attributes.
  */
+
  void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
 {
     switch( mlmeConfirm->MlmeRequest )
@@ -468,6 +486,7 @@ void OnTxNextPacketTimerEvent( void )
             if( mlmeConfirm->Status == LORAMAC_EVENT_INFO_STATUS_OK )
             {
             	lora_printf("+JOIN:DONE\n\n");
+            	isJioned++;
                 // Status is OK, node has joined the network
                 DeviceState = DEVICE_STATE_SEND;
             }

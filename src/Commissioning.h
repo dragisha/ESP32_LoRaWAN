@@ -12,8 +12,10 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 Maintainer: Miguel Luis and Gregory Cristian
 */
+
 #ifndef __LORA_COMMISSIONING_H__
 #define __LORA_COMMISSIONING_H__
+#include "Arduino.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -22,8 +24,10 @@ extern "C"{
 #include "LoRaMac-definitions.h"
 #include "board.h"
 #include "LoRaMac.h"
-extern  void lora_printf(const char *format, ...);
 
+extern void lora_printf(const char *format, ...);
+extern uint8_t isJioned;
+extern uint8_t isAckReceived;
 /*!
  * When set to 1 the application uses the Over-the-Air activation procedure
  * When set to 0 the application uses the Personalization activation procedure
