@@ -38,8 +38,8 @@ private:
 
 
 #ifdef __cplusplus
-extern "C" void write(uint8_t address, uint8_t value);
-extern "C" uint8_t read(uint8_t address);
+// extern "C" void write(uint8_t address, uint8_t value);
+// extern "C" uint8_t read(uint8_t address);
 extern "C" void lora_printf(const char *format, ...);
 extern "C" void writefifo(uint8_t address, uint8_t *buffer, uint8_t size);
 extern "C" void readfifo(uint8_t address, uint8_t *buffer, uint8_t size);
