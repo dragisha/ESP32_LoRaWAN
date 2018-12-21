@@ -85,9 +85,9 @@ return_type aes_set_key( const uint8_t key[],
 
 #if defined( AES_ENC_PREKEYED )
 
-return_type aes_encrypt( const uint8_t in[N_BLOCK],
-                         uint8_t out[N_BLOCK],
-                         const aes_context ctx[1] );
+return_type lora_aes_encrypt(const uint8_t *in,
+                             uint8_t *out,
+                             const aes_context *ctx);
 
 return_type aes_cbc_encrypt( const uint8_t *in,
                          uint8_t *out,
