@@ -1,4 +1,4 @@
-#include <LoRa.h>
+#include "LoRa.h"
 
 void LoRaClass::DeviceStateInit()
 {
@@ -43,65 +43,100 @@ void LoRaClass::DeviceStateInit()
 
 }
 
-void LoRaClass::DeviceStateJion()
-{
-#if( OVER_THE_AIR_ACTIVATION != 0 )
-                MlmeReq_t mlmeReq;
+void LoRaClass::DeviceStateJoinOTAA() {
+    MlmeReq_t mlmeReq;
 
-                mlmeReq.Type = MLME_JOIN;
+    mlmeReq.Type = MLME_JOIN;
 
-                mlmeReq.Req.Join.DevEui = DevEui;
-                mlmeReq.Req.Join.AppEui = AppEui;
-                mlmeReq.Req.Join.AppKey = AppKey;
-                mlmeReq.Req.Join.NbTrials = 3;
+    mlmeReq.Req.Join.DevEui = DevEui;
+    mlmeReq.Req.Join.AppEui = AppEui;
+    mlmeReq.Req.Join.AppKey = AppKey;
+    mlmeReq.Req.Join.NbTrials = 3;
 
-                if( NextTx == true )
-                {
-                	lora_printf("+JOIN:STARTING...\n");
-                    LoRaMacMlmeRequest( &mlmeReq );
-                }
-                DeviceState = DEVICE_STATE_SLEEP;
-#else
-                // Choose a random device address if not already defined in Commissioning.h
-                if( DevAddr == 0 )
-                {
-                    // Random seed initialization
-                    srand1( BoardGetRandomSeed( ) );
-
-                    // Choose a random device address
-                    DevAddr = randr( 0, 0x01FFFFFF );
-                }
-
-                mibReq.Type = MIB_NET_ID;
-                mibReq.Param.NetID = LORAWAN_NETWORK_ID;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
-                mibReq.Type = MIB_DEV_ADDR;
-                mibReq.Param.DevAddr = DevAddr;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
-                mibReq.Type = MIB_NWK_SKEY;
-                mibReq.Param.NwkSKey = NwkSKey;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
-                mibReq.Type = MIB_APP_SKEY;
-                mibReq.Param.AppSKey = AppSKey;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
-                mibReq.Type = MIB_NETWORK_JOINED;
-                mibReq.Param.IsNetworkJoined = true;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
-                DeviceState = DEVICE_STATE_SEND;
-#endif
+    if (NextTx == true) {
+        lora_printf("+JOIN OTAA:STARTING...\n");
+        LoRaMacMlmeRequest(&mlmeReq);
+    }
+    DeviceState = DEVICE_STATE_SLEEP;
 }
-void LoRaClass::DeviceStateSend()
-{
-	if( NextTx == true )
+
+void LoRaClass::DeviceStateJoinABP(uint32_t &devAddr, uint8_t *nwkSKey, uint8_t *appSKey) {
+    mibReq.Type = MIB_NET_ID;
+    mibReq.Param.NetID = LORAWAN_NETWORK_ID;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    mibReq.Type = MIB_DEV_ADDR;
+    mibReq.Param.DevAddr = devAddr;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    mibReq.Type = MIB_NWK_SKEY;
+    mibReq.Param.NwkSKey = nwkSKey;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    mibReq.Type = MIB_APP_SKEY;
+    mibReq.Param.AppSKey = appSKey;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    mibReq.Type = MIB_NETWORK_JOINED;
+    mibReq.Param.IsNetworkJoined = true;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    mibReq.Type = MIB_ADR;
+    mibReq.Param.AdrEnable = true;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+
+    MlmeReq_t mlmeReq;
+
+    mlmeReq.Type = MLME_LINK_CHECK;
+
+    if (NextTx == true) {
+        lora_printf("+JOIN ABP:STARTING...\n");
+        LoRaMacMlmeRequest(&mlmeReq);
+    }
+
+    DeviceState = DEVICE_STATE_SLEEP;
+}
+
+bool LoRaClass::DeviceGetLoRaCreds(uint32_t &devAddr, uint8_t *nwkSKey, uint8_t *appSKey) {
+    mibReq.Type = MIB_NETWORK_JOINED;
+    LoRaMacMibGetRequestConfirm(&mibReq);
+    if (!mibReq.Param.IsNetworkJoined)
+        return false;
+
+    mibReq.Type = MIB_DEV_ADDR;
+    LoRaMacMibGetRequestConfirm(&mibReq);
+    devAddr = mibReq.Param.DevAddr;
+
+    mibReq.Type = MIB_NWK_SKEY;
+    LoRaMacMibGetRequestConfirm(&mibReq);
+    memcpy(nwkSKey, mibReq.Param.NwkSKey, 16);
+
+    mibReq.Type = MIB_APP_SKEY;
+    LoRaMacMibGetRequestConfirm(&mibReq);
+    memcpy(appSKey, mibReq.Param.AppSKey, 16);
+
+    return true;
+}
+
+/*!
+ *
+ * @param frameData to be copied to AppData, data to be sent
+ * @param frameSize its size
+ * @param appPort fPort parameter
+ * @param isTxConfirmed do we require an ACK?
+ * @return true on success
+ */
+
+void LoRaClass::DeviceStateSend( uint8_t *frameData, uint8_t frameSize, uint8_t appPort, bool isTxConfirmed) {
+	if( NextTx)
 	{
+#if DebugLevel > 0
 		lora_printf("In sending...\r\n");
+#endif
 		DelayMs(100);
-		NextTx = SendFrame( );
+		NextTx = SendAppFrame(frameData, frameSize, appPort, isTxConfirmed);
+	} else {
+	    // TODO What if not? We must maintain a queue here or in LoRaMac. FIXME
 	}
 	if( ComplianceTest.Running == true )
 	{

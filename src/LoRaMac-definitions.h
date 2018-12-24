@@ -18,7 +18,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 
 
 #define  USE_BAND_868
-#define  CLASS     CLASS_A
+#define  CLASS     CLASS_C
 
 /*!
  * Returns individual channel mask
@@ -390,7 +390,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 /*!
  * Default datarate used by the node
  */
-#define LORAMAC_DEFAULT_DATARATE                    DR_0
+#define LORAMAC_DEFAULT_DATARATE                    DR_3
 
 /*!
  * Minimal Rx1 receive datarate offset
@@ -450,7 +450,7 @@ Maintainer: Miguel Luis and Gregory Cristian
  * Second reception window channel definition.
  */
 // Channel = { Frequency [Hz], Datarate }
-#define RX_WND_2_CHANNEL                                  { 869525000, DR_0 }
+#define RX_WND_2_CHANNEL                                  { 869525000, DR_5 }
 
 /*!
  * LoRaMac maximum number of bands
