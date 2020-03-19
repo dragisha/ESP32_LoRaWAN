@@ -1,24 +1,71 @@
 #ifndef LORA_H
 #define LORA_H
+#ifdef __cplusplus
+extern "C"{
+#endif
 
-#include <Arduino.h>
-#include "SPI.h"
+#include "LoRaMac-definitions.h"
+#include "LoRaMac.h"
 #include "board.h"
-#include "Commissioning.h"
-#include "Mcu.h"
+
+#include "SPI.h"
 #include "Commissioning.h"
 
-class LoRaClass{
+/*
+ * Needs to be global and exposed because of compliance code and is used from OTAA code in LoRa.cpp as well as from compliance part.
+ */
+extern uint8_t DevEui[];
+extern uint8_t AppEui[];
+extern uint8_t AppKey[];
+
+extern uint8_t isJioned;
+extern uint8_t isAckReceived;
+
+/*!
+* Defines the application data transmission duty cycle
+*/
+extern uint32_t TxDutyCycleTime;
+
+/*!
+* Timer to handle the application data transmission duty cycle
+*/
+extern TimerEvent_t TxNextPacketTimer;
+
+enum eDeviceState
+{
+    DEVICE_STATE_INIT,
+    DEVICE_STATE_JOIN,
+    DEVICE_STATE_SEND,
+    DEVICE_STATE_CYCLE,
+    DEVICE_STATE_SLEEP
+};
+
+
+extern LoRaMacPrimitives_t applicationLevel;
+
+/*!
+* Specifies the state of the application LED
+*/
+extern bool AppLedStateOn;
+
+extern enum eDeviceState DeviceState;
+void OnTxNextPacketTimerEvent( void );
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+class LoRaClass {
 public:
-  void DeviceStateInit();
+  void DeviceStateInit(uint32_t myRandSeed);
 
   void DeviceStateJoinOTAA();
 
-  void DeviceStateJoinABP(uint32_t &devAddr, uint8_t *nwkSKey, uint8_t *appSKey);
+  void DeviceStateJoinABP(uint32_t &devAddr, uint8_t *nwkSKey, uint8_t *appSKey, uint32_t downlinkCounter);
 
   bool DeviceGetLoRaCreds(uint32_t &devAddr, uint8_t *nwkSKey, uint8_t *appSKey);
 
-  void DeviceStateSend(uint8_t *frameData, uint8_t frameSize, uint8_t appPort, bool isTxConfirmed);
+  void DeviceStateSend(uint8_t *frameData, uint8_t frameSize, uint8_t appPort, bool isTxConfirmed, int8_t datarate = -1);
 
   void DeviceSleep(uint8_t isLowPowerOn,uint8_t debuglevel);
 };
