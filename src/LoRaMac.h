@@ -45,6 +45,10 @@
  */
 #ifndef __LORAMAC_H__
 #define __LORAMAC_H__
+
+#include <stdint.h>
+#include "timer.h"
+
 #ifdef __cplusplus
 extern "C"{
 #endif

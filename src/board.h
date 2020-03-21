@@ -47,7 +47,7 @@ extern "C"{
 //					print message "S": system into deep sleep mode
 //					print message "0": DIO0 interrupt(TX and RX interrupt)
 //					print message "1": DIO1 interrupt(timeout interrupt)
-#define DebugLevel 	2
+#define DebugLevel 	0
 
 //set IsLowPowerOn to 1--open lowpower mode;
 //set IsLowPowerOn to 0--close deepsleep mode;
