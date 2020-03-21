@@ -289,6 +289,7 @@ bool SendAppFrame( uint8_t *frameData, uint8_t frameSize, uint8_t appPort, bool 
         mcpsReq.Req.Unconfirmed.fBuffer = NULL;
         mcpsReq.Req.Unconfirmed.fBufferSize = 0;
     } else {
+        // dd: ovo je bilo premaleno, drzao sam 64 a gurao po 232 mozda vise
         memcpy(AppData, frameData, LORAWAN_APP_DATA_MAX_SIZE);
         if (datarate < 0)
             datarate = LORAMAC_DEFAULT_DATARATE;

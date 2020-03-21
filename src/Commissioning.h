@@ -19,7 +19,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 /*!
 * User application data buffer size
 */
-#define LORAWAN_APP_DATA_MAX_SIZE                           128
+#define LORAWAN_APP_DATA_MAX_SIZE                           256
 
 /*!
  * Indicates if the end-device is to be connected to a private or public network
