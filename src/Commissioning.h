@@ -16,20 +16,5 @@ Maintainer: Miguel Luis and Gregory Cristian
 #ifndef __LORA_COMMISSIONING_H__
 #define __LORA_COMMISSIONING_H__
 
-/*!
-* User application data buffer size
-*/
-#define LORAWAN_APP_DATA_MAX_SIZE                           256
-
-/*!
- * Indicates if the end-device is to be connected to a private or public network
- */
-#define LORAWAN_PUBLIC_NETWORK                      true
-
-/*!
- * Current network ID
- */
-#define LORAWAN_NETWORK_ID                          ( uint32_t )0
-
 
 #endif // __LORA_COMMISSIONING_H__

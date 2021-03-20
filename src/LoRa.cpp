@@ -107,7 +107,7 @@ LoRaMacPrimitives_t LoRaMacPrimitives;
 LoRaMacPrimitives_t applicationLevel;
 LoRaMacCallback_t LoRaMacCallbacks;
 MibRequestConfirm_t mibReq;
-uint8_t isJioned=0;
+uint8_t isJoined=0;
 uint8_t isAckReceived=0;
 /*!
  * Defines the application data transmission duty cycle. 60s, value in [ms].
@@ -614,7 +614,7 @@ void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
             if( mlmeConfirm->Status == LORAMAC_EVENT_INFO_STATUS_OK )
             {
                 if (applicationLevel.MacMlmeConfirm) applicationLevel.MacMlmeConfirm(mlmeConfirm);
-                isJioned++;
+                isJoined++;
                 // Status is OK, node has joined the network
                 DeviceState = DEVICE_STATE_SEND;
             }
@@ -647,13 +647,21 @@ void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
     NextTx = true;
 }
 
-void LoRaClass::DeviceStateInit(uint32_t myRandSeed)
+bool TimerAPlusExpired() {
+    if (applicationLevel.TimerAPlusExpired)
+        return applicationLevel.TimerAPlusExpired();
+
+    return false;
+}
+
+void LoRaClass::DeviceStateInit(uint32_t myRandSeed, DeviceClass_t deviceClass)
 {
     LoRaMacPrimitives.MacMcpsConfirm = McpsConfirm;//
     LoRaMacPrimitives.MacMcpsIndication = McpsIndication;//
     LoRaMacPrimitives.MacMlmeConfirm = MlmeConfirm;//
+    LoRaMacPrimitives.TimerAPlusExpired = TimerAPlusExpired;
     LoRaMacCallbacks.GetBatteryLevel = BoardGetBatteryLevel;
-    LoRaMacInitialization( &LoRaMacPrimitives, &LoRaMacCallbacks );
+    LoRaMacInitialization( &LoRaMacPrimitives, &LoRaMacCallbacks, deviceClass );
 
     TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );//
     mibReq.Type = MIB_ADR;
@@ -675,7 +683,7 @@ void LoRaClass::DeviceStateInit(uint32_t myRandSeed)
     LoRaMacChannelAdd( 6, ( ChannelParams_t )LC7 );
     LoRaMacChannelAdd( 7, ( ChannelParams_t )LC8 );
     LoRaMacChannelAdd( 8, ( ChannelParams_t )LC9 );
-    LoRaMacChannelAdd( 9, ( ChannelParams_t )LC10 );
+    // LoRaMacChannelAdd( 9, ( ChannelParams_t )LC10 ); // dd - do not do DR_6, I do not configure it... CHECK TODO FIXME
 
     mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;
     mibReq.Param.Rx2DefaultChannel = ( Rx2ChannelParams_t ){ 869525000, DR_3 };

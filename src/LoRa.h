@@ -9,7 +9,22 @@ extern "C"{
 #include "board.h"
 
 #include "SPI.h"
-#include "Commissioning.h"
+
+/*!
+* User application data buffer size
+*/
+#define LORAWAN_APP_DATA_MAX_SIZE                           256
+
+/*!
+ * Indicates if the end-device is to be connected to a private or public network
+ */
+#define LORAWAN_PUBLIC_NETWORK                      true
+
+/*!
+ * Current network ID
+ */
+#define LORAWAN_NETWORK_ID                          ( uint32_t )0
+
 
 /*
  * Needs to be global and exposed because of compliance code and is used from OTAA code in LoRa.cpp as well as from compliance part.
@@ -18,7 +33,7 @@ extern uint8_t DevEui[];
 extern uint8_t AppEui[];
 extern uint8_t AppKey[];
 
-extern uint8_t isJioned;
+extern uint8_t isJoined;
 extern uint8_t isAckReceived;
 
 /*!
@@ -57,7 +72,7 @@ void OnTxNextPacketTimerEvent( void );
 
 class LoRaClass {
 public:
-  void DeviceStateInit(uint32_t myRandSeed);
+  void DeviceStateInit(uint32_t myRandSeed, DeviceClass_t deviceClass);
 
   void DeviceStateJoinOTAA();
 

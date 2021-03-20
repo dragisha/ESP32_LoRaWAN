@@ -124,7 +124,12 @@ static MulticastParams_t *MulticastChannels = NULL;
 /*!
  * Actual device class
  */
-static DeviceClass_t LoRaMacDeviceClass;
+RTC_DATA_ATTR static DeviceClass_t LoRaMacDeviceClass;
+
+/*!
+ * Class APLUS
+ */
+RTC_DATA_ATTR static bool LoRaMacClassAPlus;
 
 /*!
  * Indicates if the node is connected to a private or public network
@@ -606,6 +611,7 @@ static TimerEvent_t TxDelayedTimer;
  */
 static TimerEvent_t RxWindowTimer1;
 static TimerEvent_t RxWindowTimer2;
+static TimerEvent_t RxWindowTimer3;
 
 /*!
  * LoRaMac reception windows delay
@@ -989,6 +995,15 @@ static void CalculateBackOff( uint8_t channel );
 static int8_t AlternateDatarate( uint16_t nbTrials );
 
 /*!
+ * \brief Used internally but made available externally so I go around LoRaWAN and broadcast locally
+ *
+ * @param freq  Mostly RX2
+ * @param power This I have to check and see
+ * @return
+ */
+LoRaMacStatus_t SendFrameOnFreqWithPower( uint32_t freq, int8_t power );
+
+/*!
  * \brief LoRaMAC layer prepared frame buffer transmission with channel specification
  *
  * \remark PrepareFrame must be called at least once before calling this
@@ -1104,6 +1119,11 @@ static void OnRadioTxDone( void )
             TimerSetValue( &AckTimeoutTimer, RxWindow2Delay + ACK_TIMEOUT +
                                              randr( -ACK_TIMEOUT_RND, ACK_TIMEOUT_RND ) );
             TimerStart( &AckTimeoutTimer );
+        }
+
+        if (LoRaMacClassAPlus) {
+            TimerSetValue( &RxWindowTimer3, 10000);
+            TimerStart( &RxWindowTimer3);
         }
     }
     else
@@ -1288,6 +1308,8 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                 address |= ( (uint32_t)payload[pktHeaderLen++] << 8 );
                 address |= ( (uint32_t)payload[pktHeaderLen++] << 16 );
                 address |= ( (uint32_t)payload[pktHeaderLen++] << 24 );
+
+                McpsIndication.devAddr = address;
 
 #if (DebugLevel > 0)
                 lora_printf("IN %x ?= MY %x\t", address, LoRaMacDevAddr);
@@ -1953,6 +1975,15 @@ static void OnRxWindow2TimerEvent( void )
     if( RxWindowSetup( LoRaMacParams.Rx2Channel.Frequency, RxWindowsParams[1].Datarate, RxWindowsParams[1].Bandwidth, RxWindowsParams[1].RxWindowTimeout, rxContinuousMode ) == true )
     {
         RxSlot = 1;
+    }
+}
+
+static void OnRxWindow3TimerEvent( void )
+{
+    TimerStop( &RxWindowTimer3 );
+    if (LoRaMacPrimitives->TimerAPlusExpired && LoRaMacPrimitives->TimerAPlusExpired()) {
+        Radio.Sleep();
+        lora_printf(" [RTS timer3] ");
     }
 }
 
@@ -3346,24 +3377,24 @@ LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl
     return LORAMAC_STATUS_OK;
 }
 
-LoRaMacStatus_t SendFrameOnChannel( ChannelParams_t channel )
-{
+LoRaMacStatus_t SendFrameOnFreqWithPower( uint32_t freq, int8_t power ) {
     int8_t datarate = Datarates[LoRaMacParams.ChannelsDatarate];
     int8_t txPowerIndex = 0;
     int8_t txPower = 0;
 
-    txPowerIndex = LimitTxPower( LoRaMacParams.ChannelsTxPower, Bands[channel.Band].TxMaxPower );
+    txPowerIndex = LimitTxPower( LoRaMacParams.ChannelsTxPower, power );
     txPower = TxPowers[txPowerIndex];
+    //txPower = -8;
 
     MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
     McpsConfirm.Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
     McpsConfirm.Datarate = LoRaMacParams.ChannelsDatarate;
     McpsConfirm.TxPower = txPowerIndex;
-    McpsConfirm.UpLinkFrequency = channel.Frequency;
+    McpsConfirm.UpLinkFrequency = freq;
 #if DebugLevel>=1
     lora_printf("\r\nTx Freq:%d\r\n",channel.Frequency);
 #endif
-    Radio.SetChannel( channel.Frequency );
+    Radio.SetChannel( freq );
 
 #if defined( USE_BAND_433 ) || defined( USE_BAND_780 ) || defined( USE_BAND_868 )
     if( LoRaMacParams.ChannelsDatarate == DR_7 )
@@ -3427,6 +3458,10 @@ LoRaMacStatus_t SendFrameOnChannel( ChannelParams_t channel )
     return LORAMAC_STATUS_OK;
 }
 
+LoRaMacStatus_t SendFrameOnChannel( ChannelParams_t channel ) {
+    return SendFrameOnFreqWithPower(channel.Frequency, Bands[channel.Band].TxMaxPower);
+}
+
 LoRaMacStatus_t SetTxContinuousWave( uint16_t timeout )
 {
     int8_t txPowerIndex = 0;
@@ -3460,7 +3495,7 @@ LoRaMacStatus_t SetTxContinuousWave1( uint16_t timeout, uint32_t frequency, uint
 }
 
 
-LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks )
+LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, enum eDeviceClass deviceClass)
 {
 
 
@@ -3481,7 +3516,8 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
 
     LoRaMacFlags.Value = 0;// LoRaMac tx/rx operation state
 
-    LoRaMacDeviceClass = CLASS;
+    LoRaMacClassAPlus = deviceClass == CLASS_APLUS;
+    LoRaMacDeviceClass = LoRaMacClassAPlus ? CLASS_C : deviceClass;
     LoRaMacState = LORAMAC_IDLE;
 
     JoinRequestTrials = 0;// number of trials for the join request
@@ -3614,6 +3650,7 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     TimerInit( &TxDelayedTimer, OnTxDelayedTimerEvent );
     TimerInit( &RxWindowTimer1, OnRxWindow1TimerEvent );
     TimerInit( &RxWindowTimer2, OnRxWindow2TimerEvent );
+    TimerInit( &RxWindowTimer3, OnRxWindow3TimerEvent );
     TimerInit( &AckTimeoutTimer, OnAckTimeoutTimerEvent );
 
 

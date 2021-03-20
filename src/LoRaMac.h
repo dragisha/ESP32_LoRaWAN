@@ -173,6 +173,8 @@ typedef enum eDeviceClass
      * LoRaWAN Specification V1.0.1, chapter 17ff
      */
     CLASS_C,
+
+    CLASS_APLUS,
 }DeviceClass_t;
 
 /*!
@@ -932,6 +934,8 @@ typedef struct sMcpsIndication
      * The downlink counter value for the received frame
      */
     uint32_t DownLinkCounter;
+
+    uint32_t devAddr;
 }McpsIndication_t;
 
 /*!
@@ -1628,6 +1632,8 @@ typedef struct sLoRaMacPrimitives
      * \param   [OUT] MLME-Confirm parameters
      */
     void ( *MacMlmeConfirm )( MlmeConfirm_t *MlmeConfirm );
+
+    bool ( *TimerAPlusExpired ) ( void );
 }LoRaMacPrimitives_t;
 
 typedef struct sLoRaMacCallback
@@ -1662,7 +1668,7 @@ typedef struct sLoRaMacCallback
  *          \ref LORAMAC_STATUS_OK,
  *          \ref LORAMAC_STATUS_PARAMETER_INVALID.
  */
-LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks );
+LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, enum eDeviceClass deviceClass);
 
 /*!
  * \brief   Queries the LoRaMAC if it is possible to send the next frame with
