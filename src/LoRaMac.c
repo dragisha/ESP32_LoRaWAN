@@ -1390,6 +1390,12 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
                     }
                 }
 
+                if (multicast == 1 && (sequenceCounterDiff >= MAX_FCNT_GAP || !isMicOk)) {
+                    McpsIndication.Status = LORAMAC_EVENT_INFO_STATUS_OWN_MULTICAST_HEARD;
+                    PrepareRxDoneAbort();
+                    return;
+                }
+
                 // Check for a the maximum allowed counter difference
                 if( sequenceCounterDiff >= MAX_FCNT_GAP )
                 {

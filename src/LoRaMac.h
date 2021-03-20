@@ -624,6 +624,10 @@ typedef enum eLoRaMacEventInfoStatus
      * message integrity check failure
      */
     LORAMAC_EVENT_INFO_STATUS_MIC_FAIL,
+    /*!
+     * message is for own multicast, but device's DownLinkCounter is stale
+     */
+    LORAMAC_EVENT_INFO_STATUS_OWN_MULTICAST_HEARD,
 }LoRaMacEventInfoStatus_t;
 
 /*!

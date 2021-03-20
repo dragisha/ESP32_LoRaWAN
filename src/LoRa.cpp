@@ -388,6 +388,10 @@ void McpsConfirm( McpsConfirm_t *mcpsConfirm ) {
  */
 void McpsIndication( McpsIndication_t *mcpsIndication )
 {
+    if (mcpsIndication->Status != LORAMAC_EVENT_INFO_STATUS_OWN_MULTICAST_HEARD && applicationLevel.MacMcpsIndication) {
+        applicationLevel.MacMcpsIndication(mcpsIndication);
+    }
+
     if( mcpsIndication->Status != LORAMAC_EVENT_INFO_STATUS_OK )
     {
         return;
